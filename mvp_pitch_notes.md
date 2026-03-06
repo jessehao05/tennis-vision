@@ -1,0 +1,6 @@
+- title and names: 13-20 s
+- description, objective: 30 s
+- DEMO (live | video, like zoom or screencapture | in/out photos): 1-3 mins
+- current status
+- risks you've crossed off
+- closing (what to do next): 30 s

@@ -1,6 +1,7 @@
-from ultralytics import YOLO 
+from ultralytics import YOLO
 import cv2
 import pickle
+import os
 import sys
 sys.path.append('../')
 from utils import measure_distance, get_center_of_bbox
@@ -41,7 +42,7 @@ class PlayerTracker:
     def detect_frames(self,frames, read_from_stub=False, stub_path=None):
         player_detections = []
 
-        if read_from_stub and stub_path is not None:
+        if stub_path is not None and os.path.exists(stub_path):
             with open(stub_path, 'rb') as f:
                 player_detections = pickle.load(f)
             return player_detections

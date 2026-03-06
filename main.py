@@ -1,10 +1,11 @@
-from utils import (read_video, 
+from utils import (read_video,
                    save_video,
                    measure_distance,
                    draw_player_stats,
                    convert_pixel_distance_to_meters
                    )
 import constants
+import os
 from trackers import PlayerTracker,BallTracker
 from court_line_detector import CourtLineDetector
 from mini_court import MiniCourt
@@ -15,20 +16,23 @@ from copy import deepcopy
 
 def main():
     # Read Video
-    input_video_path = "input_videos/rublev-short.mp4"
+    input_video_path = "input_videos/input_video.mp4"
     video_frames = read_video(input_video_path)
+
+    cap = cv2.VideoCapture(input_video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    cap.release()
 
     # Detect Players and Ball
     player_tracker = PlayerTracker(model_path='yolov8x')
     ball_tracker = BallTracker(model_path='models/yolo5_last.pt')
 
+    video_name = os.path.splitext(os.path.basename(input_video_path))[0]
     player_detections = player_tracker.detect_frames(video_frames,
-                                                     read_from_stub=True,
-                                                     stub_path="tracker_stubs/player_detections.pkl"
+                                                     stub_path=f"tracker_stubs/{video_name}_player_detections.pkl"
                                                      )
     ball_detections = ball_tracker.detect_frames(video_frames,
-                                                     read_from_stub=True,
-                                                     stub_path="tracker_stubs/ball_detections.pkl"
+                                                     stub_path=f"tracker_stubs/{video_name}_ball_detections.pkl"
                                                      )
     ball_detections = ball_tracker.interpolate_ball_positions(ball_detections)
     
@@ -70,7 +74,7 @@ def main():
     for ball_shot_ind in range(len(ball_shot_frames)-1):
         start_frame = ball_shot_frames[ball_shot_ind]
         end_frame = ball_shot_frames[ball_shot_ind+1]
-        ball_shot_time_in_seconds = (end_frame-start_frame)/24 # 24fps
+        ball_shot_time_in_seconds = (end_frame-start_frame)/fps
 
         # Get distance covered by the ball
         distance_covered_by_ball_pixels = measure_distance(ball_mini_court_detections[start_frame][1],
@@ -142,7 +146,7 @@ def main():
     for i, frame in enumerate(output_video_frames):
         cv2.putText(frame, f"Frame: {i}",(10,30),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    save_video(output_video_frames, "output_videos/test-rublev.avi")
+    save_video(output_video_frames, "output_videos/test-rublev.avi", fps)
 
 if __name__ == "__main__":
     main()
