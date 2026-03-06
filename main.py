@@ -146,7 +146,9 @@ def main():
     for i, frame in enumerate(output_video_frames):
         cv2.putText(frame, f"Frame: {i}",(10,30),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    save_video(output_video_frames, "output_videos/output_video.avi", fps)
+    save_path = "output_videos/sample.avi"
+
+    save_video(output_video_frames, save_path, fps)
 
 if __name__ == "__main__":
     main()
