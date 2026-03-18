@@ -16,8 +16,11 @@ from copy import deepcopy
 
 def main():
     # Read Video
-    input_video_path = "input_videos/input_video.mp4"
+    input_video_path = "input_videos/rublev-short.mp4"
     video_frames = read_video(input_video_path)
+
+    if not video_frames:
+        raise FileNotFoundError(f"No frames read from '{input_video_path}'. Check that the file exists and is a valid video.")
 
     cap = cv2.VideoCapture(input_video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -89,11 +92,15 @@ def main():
 
         # player who the ball
         player_positions = player_mini_court_detections[start_frame]
+        if not player_positions or not player_mini_court_detections[end_frame]:
+            continue
         player_shot_ball = min( player_positions.keys(), key=lambda player_id: measure_distance(player_positions[player_id],
                                                                                                  ball_mini_court_detections[start_frame][1]))
 
         # opponent player speed
         opponent_player_id = 1 if player_shot_ball == 2 else 2
+        if opponent_player_id not in player_mini_court_detections[start_frame] or opponent_player_id not in player_mini_court_detections[end_frame]:
+            continue
         distance_covered_by_opponent_pixels = measure_distance(player_mini_court_detections[start_frame][opponent_player_id],
                                                                 player_mini_court_detections[end_frame][opponent_player_id])
         distance_covered_by_opponent_meters = convert_pixel_distance_to_meters( distance_covered_by_opponent_pixels,
@@ -146,7 +153,7 @@ def main():
     for i, frame in enumerate(output_video_frames):
         cv2.putText(frame, f"Frame: {i}",(10,30),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    save_path = "output_videos/sample.avi"
+    save_path = "output_videos/rublev-short.avi"
 
     save_video(output_video_frames, save_path, fps)
 
