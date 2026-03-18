@@ -170,3 +170,8 @@ input_videos/test-tsitsipas-rublev.mp4
 
 # output videos
 output_videos/sample.avi
+output_videos/rublev-short.avi
+
+# tracker stubs
+tracker_stubs/rublev-short_ball_detections.pkl
+tracker_stubs/rublev-short_player_detections.pkl
