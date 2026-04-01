@@ -2,7 +2,8 @@ from utils import (read_video,
                    save_video,
                    measure_distance,
                    draw_player_stats,
-                   convert_pixel_distance_to_meters
+                   convert_pixel_distance_to_meters,
+                   save_shot_heatmap
                    )
 import constants
 import os
@@ -16,7 +17,7 @@ from copy import deepcopy
 
 def main():
     # Read Video
-    input_video_path = "input_videos/input_video.mp4"
+    input_video_path = "input_videos/sample_360p.mp4.mp4"
     video_frames = read_video(input_video_path)
 
     cap = cv2.VideoCapture(input_video_path)
@@ -146,7 +147,10 @@ def main():
     for i, frame in enumerate(output_video_frames):
         cv2.putText(frame, f"Frame: {i}",(10,30),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    save_path = "output_videos/sample.avi"
+    # Save shot heatmap
+    save_shot_heatmap(ball_mini_court_detections, ball_shot_frames, mini_court, "output_visuals/shot_heatmap.png")
+
+    save_path = "output_videos/sample_360p.avi"
 
     save_video(output_video_frames, save_path, fps)
 
