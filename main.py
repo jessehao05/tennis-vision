@@ -17,7 +17,7 @@ from copy import deepcopy
 
 def main():
     # Read Video
-    input_video_path = "input_videos/sample_360p.mp4.mp4"
+    input_video_path = "input_videos/rublev-short.mp4.mp4"
     video_frames = read_video(input_video_path)
 
     cap = cv2.VideoCapture(input_video_path)
@@ -148,9 +148,9 @@ def main():
         cv2.putText(frame, f"Frame: {i}",(10,30),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     # Save shot heatmap
-    save_shot_heatmap(ball_mini_court_detections, ball_shot_frames, mini_court, "output_visuals/shot_heatmap.png")
+    save_shot_heatmap(ball_mini_court_detections, ball_shot_frames, mini_court, "output_visuals/rublev-short.png")
 
-    save_path = "output_videos/sample_360p.avi"
+    save_path = "output_videos/rublev-short.avi"
 
     save_video(output_video_frames, save_path, fps)
 
