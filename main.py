@@ -15,9 +15,18 @@ import pandas as pd
 from copy import deepcopy
 
 
-def main():
+def main(
+    input_video_path: str = "input_videos/input_video.mp4",
+    output_video_path: str = "output_videos/yoink.avi",
+    heatmap_output_path: str = "output_visuals/TEST.png",
+    progress_callback=None,
+):
+    def progress(msg):
+        if progress_callback:
+            progress_callback(msg)
+
     # Read Video
-    input_video_path = "input_videos/input_video.mp4"
+    progress("Reading video frames...")
     video_frames = read_video(input_video_path)
 
     if not video_frames:
@@ -28,6 +37,7 @@ def main():
     cap.release()
 
     # Detect Players and Ball
+    progress("Detecting players...")
     player_tracker = PlayerTracker(model_path='yolov8x')
     ball_tracker = BallTracker(model_path='models/yolo5_last.pt')
 
@@ -35,13 +45,15 @@ def main():
     player_detections = player_tracker.detect_frames(video_frames,
                                                      stub_path=f"tracker_stubs/{video_name}_player_detections.pkl"
                                                      )
+    progress("Detecting ball...")
     ball_detections = ball_tracker.detect_frames(video_frames,
                                                      stub_path=f"tracker_stubs/{video_name}_ball_detections.pkl"
                                                      )
     ball_detections = ball_tracker.interpolate_ball_positions(ball_detections)
-    
-    
+
+
     # Court Line Detector model
+    progress("Detecting court lines...")
     court_model_path = "models/keypoints_model.pth"
     court_line_detector = CourtLineDetector(court_model_path)
     court_keypoints = court_line_detector.predict(video_frames[0])
@@ -50,16 +62,18 @@ def main():
     player_detections = player_tracker.choose_and_filter_players(court_keypoints, player_detections)
 
     # MiniCourt
-    mini_court = MiniCourt(video_frames[0]) 
+    mini_court = MiniCourt(video_frames[0])
 
     # Detect ball shots
     ball_shot_frames= ball_tracker.get_ball_shot_frames(ball_detections)
 
     # Convert positions to mini court positions
-    player_mini_court_detections, ball_mini_court_detections = mini_court.convert_bounding_boxes_to_mini_court_coordinates(player_detections, 
+    progress("Computing mini court positions...")
+    player_mini_court_detections, ball_mini_court_detections = mini_court.convert_bounding_boxes_to_mini_court_coordinates(player_detections,
                                                                                                           ball_detections,
                                                                                                           court_keypoints)
 
+    progress("Calculating player stats...")
     player_stats_data = [{
         'frame_num':0,
         'player_1_number_of_shots':0,
@@ -135,6 +149,7 @@ def main():
 
 
     # Draw output
+    progress("Rendering output video...")
     ## Draw Player Bounding Boxes
     output_video_frames= player_tracker.draw_bboxes(video_frames, player_detections)
     output_video_frames= ball_tracker.draw_bboxes(output_video_frames, ball_detections)
@@ -154,9 +169,11 @@ def main():
     for i, frame in enumerate(output_video_frames):
         cv2.putText(frame, f"Frame: {i}",(10,30),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    save_path = "output_videos/sample.avi"
+    progress("Saving video...")
+    save_video(output_video_frames, output_video_path, fps)
 
-    save_video(output_video_frames, save_path, fps)
+    progress("Saving heatmap...")
+    save_shot_heatmap(ball_mini_court_detections, ball_shot_frames, mini_court, heatmap_output_path)
 
 if __name__ == "__main__":
     main()
