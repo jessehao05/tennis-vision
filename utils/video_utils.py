@@ -17,3 +17,4 @@ def save_video(output_video_frames, output_video_path, fps=24):
     for frame in output_video_frames:
         out.write(frame)
     out.release()
+    print(f"Output video saved to {output_video_path}")
