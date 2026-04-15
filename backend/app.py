@@ -18,11 +18,11 @@ def health():
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
     job_id = str(uuid.uuid4())
-    ext = os.path.splitext(file.filename)[1]
+    original_name = os.path.splitext(file.filename)[0]
 
-    input_path = f"input_videos/{job_id}{ext}"
-    output_video_path = f"output_videos/{job_id}.avi"
-    heatmap_path = f"output_visuals/{job_id}.png"
+    input_path = f"input_videos/{file.filename}"
+    output_video_path = f"output_videos/{original_name}.avi"
+    heatmap_path = f"output_visuals/{original_name}.png"
 
     with open(input_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
