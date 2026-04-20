@@ -241,6 +241,15 @@ class MiniCourt():
 
         return output_player_boxes , output_ball_boxes
     
+    def is_ball_in_bounds(self, ball_mini_court_position):
+        x, y = ball_mini_court_position
+        # Doubles court outer boundary: keypoints 0 (top-left), 1 (top-right), 2 (bottom-left), 3 (bottom-right)
+        left   = self.drawing_key_points[0]
+        right  = self.drawing_key_points[2]
+        top    = self.drawing_key_points[1]
+        bottom = self.drawing_key_points[5]
+        return bool(left <= x <= right and top <= y <= bottom)
+
     def draw_points_on_mini_court(self,frames,postions, color=(0,255,0)):
         for frame_num, frame in enumerate(frames):
             for _, position in postions[frame_num].items():
