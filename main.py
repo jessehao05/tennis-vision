@@ -17,8 +17,8 @@ from copy import deepcopy
 
 def main(
     input_video_path: str = "input_videos/input_video.mp4",
-    output_video_path: str = "output_videos/yoink.avi",
-    heatmap_output_path: str = "output_visuals/TEST.png",
+    output_video_path: str = None,
+    heatmap_output_path: str = None,
     progress_callback=None,
 ):
     def progress(msg):
@@ -42,6 +42,10 @@ def main(
     ball_tracker = BallTracker(model_path='models/yolo5_last.pt')
 
     video_name = os.path.splitext(os.path.basename(input_video_path))[0]
+    if output_video_path is None:
+        output_video_path = f"output_videos/{video_name}.avi"
+    if heatmap_output_path is None:
+        heatmap_output_path = f"output_visuals/{video_name}.png"
     player_detections = player_tracker.detect_frames(video_frames,
                                                      stub_path=f"tracker_stubs/{video_name}_player_detections.pkl"
                                                      )
