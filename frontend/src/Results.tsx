@@ -13,7 +13,7 @@ export default function Results({ jobId, onReset }: Props) {
         <div className="result-panel">
           <h2>Output Video</h2>
           <video controls src={videoUrl} />
-          <a href={videoUrl} download={`${jobId}.avi`} className="download-btn">
+          <a href={videoUrl} download={`${jobId}.mp4`} className="download-btn">
             Download Video
           </a>
         </div>

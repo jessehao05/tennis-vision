@@ -27,7 +27,7 @@ async def upload(file: UploadFile = File(...)):
     original_name = os.path.splitext(file.filename)[0]
 
     input_path = f"input_videos/{file.filename}"
-    output_video_path = f"output_videos/{original_name}.avi"
+    output_video_path = f"output_videos/{original_name}.mp4"
     heatmap_path = f"output_visuals/{original_name}.png"
 
     with open(input_path, "wb") as f:
@@ -59,7 +59,7 @@ def download_video(job_id: str):
     job = manager.get_job(job_id)
     if not job or job["status"] != "done":
         raise HTTPException(status_code=404, detail="Not ready")
-    return FileResponse(job["output_video_path"], media_type="video/x-msvideo", filename=f"{job_id}.avi")
+    return FileResponse(job["output_video_path"], media_type="video/mp4", filename=f"{job_id}.mp4")
 
 
 @app.get("/download/heatmap/{job_id}")

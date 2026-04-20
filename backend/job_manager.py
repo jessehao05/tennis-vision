@@ -1,12 +1,14 @@
 import multiprocessing
 import os
+import tempfile
 import traceback
 import sys
 from main import main
 
 
 def _run_job(jobs, lock, job_id):
-    sys.stdout = open("/tmp/worker.log", "w", buffering=1)
+    log_path = os.path.join(tempfile.gettempdir(), f"worker_{job_id}.log")
+    sys.stdout = open(log_path, "w", buffering=1)
     sys.stderr = sys.stdout
 
     job = dict(jobs[job_id])

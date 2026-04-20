@@ -43,7 +43,7 @@ def main(
 
     video_name = os.path.splitext(os.path.basename(input_video_path))[0]
     if output_video_path is None:
-        output_video_path = f"output_videos/{video_name}.avi"
+        output_video_path = f"output_videos/{video_name}.mp4"
     if heatmap_output_path is None:
         heatmap_output_path = f"output_visuals/{video_name}.png"
     player_detections = player_tracker.detect_frames(video_frames,
