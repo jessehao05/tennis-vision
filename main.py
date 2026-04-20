@@ -74,7 +74,10 @@ def main():
         'player_2_total_player_speed':0,
         'player_2_last_player_speed':0,
     } ]
-    
+
+    per_shot_rows = []
+    rally_number = 1
+
     for ball_shot_ind in range(len(ball_shot_frames)-1):
         start_frame = ball_shot_frames[ball_shot_ind]
         end_frame = ball_shot_frames[ball_shot_ind+1]
@@ -86,30 +89,49 @@ def main():
         distance_covered_by_ball_meters = convert_pixel_distance_to_meters( distance_covered_by_ball_pixels,
                                                                            constants.DOUBLE_LINE_WIDTH,
                                                                            mini_court.get_width_of_mini_court()
-                                                                           ) 
+                                                                           )
 
         # Speed of the ball shot in km/h
         speed_of_ball_shot = distance_covered_by_ball_meters/ball_shot_time_in_seconds * 3.6
 
-        # player who the ball
+        # player who hit the ball
         player_positions = player_mini_court_detections[start_frame]
         if not player_positions or not player_mini_court_detections[end_frame]:
             continue
         player_shot_ball = min( player_positions.keys(), key=lambda player_id: measure_distance(player_positions[player_id],
                                                                                                  ball_mini_court_detections[start_frame][1]))
 
-        # opponent player speed
         opponent_player_id = 1 if player_shot_ball == 2 else 2
-        if opponent_player_id not in player_mini_court_detections[start_frame] or opponent_player_id not in player_mini_court_detections[end_frame]:
-            continue
-        distance_covered_by_opponent_pixels = measure_distance(player_mini_court_detections[start_frame][opponent_player_id],
-                                                                player_mini_court_detections[end_frame][opponent_player_id])
-        distance_covered_by_opponent_meters = convert_pixel_distance_to_meters( distance_covered_by_opponent_pixels,
-                                                                           constants.DOUBLE_LINE_WIDTH,
-                                                                           mini_court.get_width_of_mini_court()
-                                                                           ) 
 
-        speed_of_opponent = distance_covered_by_opponent_meters/ball_shot_time_in_seconds * 3.6
+        # speed of both players during this interval
+        def player_speed(pid):
+            d_pixels = measure_distance(player_mini_court_detections[start_frame][pid],
+                                        player_mini_court_detections[end_frame][pid])
+            d_meters = convert_pixel_distance_to_meters(d_pixels,
+                                                        constants.DOUBLE_LINE_WIDTH,
+                                                        mini_court.get_width_of_mini_court())
+            return d_meters / ball_shot_time_in_seconds * 3.6
+
+        speed_of_opponent = player_speed(opponent_player_id)
+        speed_of_hitter   = player_speed(player_shot_ball)
+
+        # ball lands at end_frame position — check if in bounds
+        ball_landing_position = ball_mini_court_detections[end_frame][1]
+        in_bounds = mini_court.is_ball_in_bounds(ball_landing_position)
+
+        per_shot_rows.append({
+            'shot_number':       ball_shot_ind + 1,
+            'frame_num':         start_frame,
+            'hitting_player':    player_shot_ball,
+            'ball_speed_kmh':    round(speed_of_ball_shot, 2),
+            'player_1_speed_kmh': round(speed_of_hitter   if player_shot_ball == 1 else speed_of_opponent, 2),
+            'player_2_speed_kmh': round(speed_of_hitter   if player_shot_ball == 2 else speed_of_opponent, 2),
+            'ball_in_bounds':    in_bounds,
+            'rally_number':      rally_number,
+        })
+
+        if not in_bounds:
+            rally_number += 1
 
         current_player_stats= deepcopy(player_stats_data[-1])
         current_player_stats['frame_num'] = start_frame
@@ -131,6 +153,34 @@ def main():
     player_stats_data_df['player_2_average_shot_speed'] = player_stats_data_df['player_2_total_shot_speed']/player_stats_data_df['player_2_number_of_shots']
     player_stats_data_df['player_1_average_player_speed'] = player_stats_data_df['player_1_total_player_speed']/player_stats_data_df['player_2_number_of_shots']
     player_stats_data_df['player_2_average_player_speed'] = player_stats_data_df['player_2_total_player_speed']/player_stats_data_df['player_1_number_of_shots']
+
+    # Write CSVs
+    os.makedirs("output_videos", exist_ok=True)
+    per_shot_df = pd.DataFrame(per_shot_rows)
+    per_shot_df.to_csv(f"output_videos/{video_name}_per_shot_stats.csv", index=False)
+
+    if per_shot_rows:
+        rally_lengths = per_shot_df.groupby('rally_number').size()
+        summary_rows = []
+        for pid in [1, 2]:
+            p_shots = per_shot_df[per_shot_df['hitting_player'] == pid]
+            speed_col = f'player_{pid}_speed_kmh'
+            summary_rows.append({
+                'player':                pid,
+                'total_shots':           len(p_shots),
+                'errors':                int((~p_shots['ball_in_bounds']).sum()),
+                'in_bounds_shots':       int(p_shots['ball_in_bounds'].sum()),
+                'avg_shot_speed_kmh':    round(p_shots['ball_speed_kmh'].mean(), 2) if len(p_shots) else 0,
+                'max_shot_speed_kmh':    round(p_shots['ball_speed_kmh'].max(),  2) if len(p_shots) else 0,
+                'avg_player_speed_kmh':  round(per_shot_df[speed_col].mean(),    2),
+                'max_player_speed_kmh':  round(per_shot_df[speed_col].max(),     2),
+            })
+        summary_df = pd.DataFrame(summary_rows)
+        summary_df['total_rallies']      = len(rally_lengths)
+        summary_df['longest_rally']      = int(rally_lengths.max())
+        summary_df['avg_rally_length']   = round(rally_lengths.mean(), 2)
+        summary_df['total_shots_match']  = len(per_shot_df)
+        summary_df.to_csv(f"output_videos/{video_name}_match_summary.csv", index=False)
 
 
 
@@ -154,7 +204,7 @@ def main():
     for i, frame in enumerate(output_video_frames):
         cv2.putText(frame, f"Frame: {i}",(10,30),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-    save_path = "output_videos/sample.avi"
+    save_path = f"output_videos/{video_name}.avi"
 
     save_video(output_video_frames, save_path, fps)
 
