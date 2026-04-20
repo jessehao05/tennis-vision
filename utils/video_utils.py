@@ -1,6 +1,23 @@
 import cv2
 import subprocess
 import os
+import shutil
+import glob
+
+def _find_ffmpeg():
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    # Fallback: winget install location
+    pattern = os.path.expanduser(
+        r"~\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg*\ffmpeg-*\bin\ffmpeg.exe"
+    )
+    matches = glob.glob(pattern)
+    if matches:
+        return matches[0]
+    raise FileNotFoundError("ffmpeg not found. Install it and add to PATH.")
+
+_FFMPEG = _find_ffmpeg()
 
 def read_video(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -23,7 +40,7 @@ def save_video(output_video_frames, output_video_path, fps=24):
 
     # Re-encode to H.264 for browser compatibility
     subprocess.run(
-        ["ffmpeg", "-y", "-i", tmp_path, "-vcodec", "libx264", "-pix_fmt", "yuv420p", output_video_path],
+        [_FFMPEG, "-y", "-i", tmp_path, "-vcodec", "libx264", "-pix_fmt", "yuv420p", output_video_path],
         check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
     os.remove(tmp_path)

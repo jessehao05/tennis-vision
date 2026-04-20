@@ -200,6 +200,78 @@ header h1 {
   background: #3a78e0;
 }
 
+/* Stats */
+.stats-section {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stats-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #a0a8b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.stats-table th,
+.stats-table td {
+  padding: 0.55rem 0.9rem;
+  text-align: center;
+  border-bottom: 1px solid #1e2330;
+}
+
+.stats-table th {
+  background: #1a1f2e;
+  color: #6b7a99;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.stats-table td.stat-label {
+  text-align: left;
+  color: #a0a8b8;
+}
+
+.stats-table tbody tr:hover {
+  background: #161b28;
+}
+
+.stats-table tr.out-of-bounds td {
+  color: #e05c5c;
+}
+
+.per-shot-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  border-radius: 6px;
+  border: 1px solid #1e2330;
+}
+
+.per-shot-scroll .stats-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 /* Shared */
 .error {
   color: #e05c5c;

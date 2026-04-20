@@ -47,7 +47,7 @@ class JobManager:
         self._jobs = self._manager.dict()
         self._lock = self._manager.Lock()
 
-    def create_job(self, job_id: str, input_path: str, output_video_path: str, heatmap_path: str, use_cpu: bool = False):
+    def create_job(self, job_id: str, input_path: str, output_video_path: str, heatmap_path: str, video_name: str = "", use_cpu: bool = False):
         with self._lock:
             self._jobs[job_id] = {
                 "status": "queued",
@@ -55,6 +55,7 @@ class JobManager:
                 "input_path": input_path,
                 "output_video_path": output_video_path,
                 "heatmap_path": heatmap_path,
+                "video_name": video_name,
                 "use_cpu": use_cpu,
                 "error": None,
             }

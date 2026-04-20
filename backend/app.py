@@ -1,3 +1,4 @@
+import csv
 import os
 import shutil
 import uuid
@@ -40,6 +41,7 @@ async def upload(file: UploadFile = File(...)):
         input_path=input_path,
         output_video_path=output_video_path,
         heatmap_path=heatmap_path,
+        video_name=original_name,
         use_cpu=use_cpu,
     )
 
@@ -68,6 +70,47 @@ def download_heatmap(job_id: str):
     if not job or job["status"] != "done":
         raise HTTPException(status_code=404, detail="Not ready")
     return FileResponse(job["heatmap_path"], media_type="image/png", filename=f"{job_id}.png")
+
+
+@app.get("/stats/{job_id}")
+def get_stats(job_id: str):
+    job = manager.get_job(job_id)
+    if not job or job["status"] != "done":
+        raise HTTPException(status_code=404, detail="Not ready")
+    video_name = job.get("video_name", "")
+
+    def read_csv(path):
+        if not os.path.exists(path):
+            return []
+        with open(path, newline="") as f:
+            return list(csv.DictReader(f))
+
+    return {
+        "summary": read_csv(f"output_csv/{video_name}_match_summary.csv"),
+        "per_shot": read_csv(f"output_videos/{video_name}_per_shot_stats.csv"),
+    }
+
+
+@app.get("/download/csv/summary/{job_id}")
+def download_csv_summary(job_id: str):
+    job = manager.get_job(job_id)
+    if not job or job["status"] != "done":
+        raise HTTPException(status_code=404, detail="Not ready")
+    path = f"output_csv/{job.get('video_name', '')}_match_summary.csv"
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="CSV not found")
+    return FileResponse(path, media_type="text/csv", filename="match_summary.csv")
+
+
+@app.get("/download/csv/per-shot/{job_id}")
+def download_csv_per_shot(job_id: str):
+    job = manager.get_job(job_id)
+    if not job or job["status"] != "done":
+        raise HTTPException(status_code=404, detail="Not ready")
+    path = f"output_videos/{job.get('video_name', '')}_per_shot_stats.csv"
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="CSV not found")
+    return FileResponse(path, media_type="text/csv", filename="per_shot_stats.csv")
 
 
 # Serve React build — must be last so it doesn't shadow API routes

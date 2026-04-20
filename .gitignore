@@ -162,6 +162,7 @@ cython_debug/
 # frontend
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/*
 
 # yolo model info
 yolov8x.pt
@@ -185,3 +186,6 @@ tracker_stubs/*
 
 # heatmap
 output_visuals/*
+
+# csv
+output_csv/*

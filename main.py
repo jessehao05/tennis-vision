@@ -198,7 +198,7 @@ def main(
         summary_df['longest_rally']      = int(rally_lengths.max())
         summary_df['avg_rally_length']   = round(rally_lengths.mean(), 2)
         summary_df['total_shots_match']  = len(per_shot_df)
-        summary_df.to_csv(f"output_videos/{video_name}_match_summary.csv", index=False)
+        summary_df.to_csv(f"output_csv/{video_name}_match_summary.csv", index=False)
 
 
 
