@@ -182,3 +182,6 @@ output_videos/*
 tracker_stubs/rublev-short_ball_detections.pkl
 tracker_stubs/rublev-short_player_detections.pkl
 tracker_stubs/*
+
+# heatmap
+output_visuals/*
