@@ -175,7 +175,7 @@ def main(
     # Write CSVs
     os.makedirs("output_videos", exist_ok=True)
     per_shot_df = pd.DataFrame(per_shot_rows)
-    per_shot_df.to_csv(f"output_videos/{video_name}_per_shot_stats.csv", index=False)
+    per_shot_df.to_csv(f"output_csv/{video_name}_per_shot_stats.csv", index=False)
 
     if per_shot_rows:
         rally_lengths = per_shot_df.groupby('rally_number').size()

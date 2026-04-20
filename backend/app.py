@@ -85,9 +85,79 @@ def get_stats(job_id: str):
         with open(path, newline="") as f:
             return list(csv.DictReader(f))
 
+    per_shot = read_csv(f"output_csv/{video_name}_per_shot_stats.csv")
+    accuracy = _compute_accuracy(per_shot)
+
     return {
         "summary": read_csv(f"output_csv/{video_name}_match_summary.csv"),
-        "per_shot": read_csv(f"output_videos/{video_name}_per_shot_stats.csv"),
+        "per_shot": per_shot,
+        "accuracy": accuracy,
+    }
+
+
+def _compute_accuracy(per_shot: list) -> dict:
+    if not per_shot:
+        return {}
+
+    ball_speeds = []
+    p1_speeds = []
+    p2_speeds = []
+    rally_lengths: dict[str, int] = {}
+
+    for row in per_shot:
+        try:
+            ball_speeds.append(float(row["ball_speed_kmh"]))
+        except (ValueError, KeyError):
+            pass
+        try:
+            p1_speeds.append(float(row["player_1_speed_kmh"]))
+        except (ValueError, KeyError):
+            pass
+        try:
+            p2_speeds.append(float(row["player_2_speed_kmh"]))
+        except (ValueError, KeyError):
+            pass
+        rally = row.get("rally_number", "0")
+        rally_lengths[rally] = rally_lengths.get(rally, 0) + 1
+
+    BALL_SPEED_LOW  = 10    # km/h — below this is almost certainly a tracking error
+    BALL_SPEED_HIGH = 250   # km/h — above this is physically implausible
+    PLAYER_SPEED_MAX = 35   # km/h — fastest recorded sprint on court
+
+    n = len(ball_speeds)
+    ball_outliers = [s for s in ball_speeds if s < BALL_SPEED_LOW or s > BALL_SPEED_HIGH]
+    p1_flags = [s for s in p1_speeds if s > PLAYER_SPEED_MAX]
+    p2_flags = [s for s in p2_speeds if s > PLAYER_SPEED_MAX]
+    valid_shots = n - len(ball_outliers)
+    tracking_quality = round(valid_shots / n * 100, 1) if n else 0
+
+    lengths = list(rally_lengths.values())
+
+    def safe_round(val, digits=1):
+        return round(val, digits) if val is not None else None
+
+    return {
+        "total_shots": len(per_shot),
+        "tracking_quality_pct": tracking_quality,
+        "ball_speed": {
+            "mean":     safe_round(sum(ball_speeds) / n) if n else None,
+            "min":      safe_round(min(ball_speeds))     if ball_speeds else None,
+            "max":      safe_round(max(ball_speeds))     if ball_speeds else None,
+            "outliers": len(ball_outliers),
+            "threshold_low":  BALL_SPEED_LOW,
+            "threshold_high": BALL_SPEED_HIGH,
+        },
+        "player_speed": {
+            "p1_flagged":  len(p1_flags),
+            "p2_flagged":  len(p2_flags),
+            "threshold":   PLAYER_SPEED_MAX,
+        },
+        "rally": {
+            "total":      len(lengths),
+            "avg_length": safe_round(sum(lengths) / len(lengths)) if lengths else None,
+            "longest":    max(lengths) if lengths else None,
+            "shortest":   min(lengths) if lengths else None,
+        },
     }
 
 
@@ -107,7 +177,7 @@ def download_csv_per_shot(job_id: str):
     job = manager.get_job(job_id)
     if not job or job["status"] != "done":
         raise HTTPException(status_code=404, detail="Not ready")
-    path = f"output_videos/{job.get('video_name', '')}_per_shot_stats.csv"
+    path = f"output_csv/{job.get('video_name', '')}_per_shot_stats.csv"
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="CSV not found")
     return FileResponse(path, media_type="text/csv", filename="per_shot_stats.csv")

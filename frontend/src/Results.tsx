@@ -24,9 +24,34 @@ interface PerShotRow {
   rally_number: string;
 }
 
+interface Accuracy {
+  total_shots: number;
+  tracking_quality_pct: number;
+  ball_speed: {
+    mean: number | null;
+    min: number | null;
+    max: number | null;
+    outliers: number;
+    threshold_low: number;
+    threshold_high: number;
+  };
+  player_speed: {
+    p1_flagged: number;
+    p2_flagged: number;
+    threshold: number;
+  };
+  rally: {
+    total: number;
+    avg_length: number | null;
+    longest: number | null;
+    shortest: number | null;
+  };
+}
+
 interface StatsData {
   summary: SummaryRow[];
   per_shot: PerShotRow[];
+  accuracy: Accuracy;
 }
 
 interface Props {
@@ -80,6 +105,53 @@ export default function Results({ jobId, onReset }: Props) {
           </a>
         </div>
       </div>
+
+      {stats?.accuracy && Object.keys(stats.accuracy).length > 0 && (
+        <div className="stats-section">
+          <h2 className="stats-title">Pipeline Accuracy</h2>
+          <div className="accuracy-grid">
+
+            <div className="accuracy-card">
+              <div className="accuracy-card-label">Tracking Quality</div>
+              <div className={`accuracy-card-value ${stats.accuracy.tracking_quality_pct >= 90 ? "good" : stats.accuracy.tracking_quality_pct >= 70 ? "warn" : "bad"}`}>
+                {stats.accuracy.tracking_quality_pct}%
+              </div>
+              <div className="accuracy-card-sub">
+                {stats.accuracy.ball_speed.outliers} outlier shot{stats.accuracy.ball_speed.outliers !== 1 ? "s" : ""} out of {stats.accuracy.total_shots}
+              </div>
+            </div>
+
+            <div className="accuracy-card">
+              <div className="accuracy-card-label">Ball Speed Range</div>
+              <div className="accuracy-card-value neutral">
+                {stats.accuracy.ball_speed.min ?? "—"} – {stats.accuracy.ball_speed.max ?? "—"} km/h
+              </div>
+              <div className="accuracy-card-sub">
+                avg {stats.accuracy.ball_speed.mean ?? "—"} km/h &nbsp;·&nbsp; expected 10–250
+              </div>
+            </div>
+
+            <div className="accuracy-card">
+              <div className="accuracy-card-label">Player Speed Flags</div>
+              <div className={`accuracy-card-value ${stats.accuracy.player_speed.p1_flagged + stats.accuracy.player_speed.p2_flagged === 0 ? "good" : "warn"}`}>
+                P1: {stats.accuracy.player_speed.p1_flagged} &nbsp;·&nbsp; P2: {stats.accuracy.player_speed.p2_flagged}
+              </div>
+              <div className="accuracy-card-sub">shots where player speed &gt; {stats.accuracy.player_speed.threshold} km/h</div>
+            </div>
+
+            <div className="accuracy-card">
+              <div className="accuracy-card-label">Rally Distribution</div>
+              <div className="accuracy-card-value neutral">
+                {stats.accuracy.rally.avg_length ?? "—"} avg shots
+              </div>
+              <div className="accuracy-card-sub">
+                {stats.accuracy.rally.total} rallies &nbsp;·&nbsp; longest {stats.accuracy.rally.longest ?? "—"} &nbsp;·&nbsp; shortest {stats.accuracy.rally.shortest ?? "—"}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {p1 && p2 && (
         <div className="stats-section">
