@@ -15,7 +15,10 @@ class PlayerTracker:
         chosen_player = self.choose_players(court_keypoints, player_detections_first_frame)
         filtered_player_detections = []
         for player_dict in player_detections:
-            filtered_player_dict = {track_id: bbox for track_id, bbox in player_dict.items() if track_id in chosen_player}
+            filtered_player_dict = {}
+            for new_id, track_id in enumerate(chosen_player, start=1):
+                if track_id in player_dict:
+                    filtered_player_dict[new_id] = player_dict[track_id]
             filtered_player_detections.append(filtered_player_dict)
         return filtered_player_detections
 

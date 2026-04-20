@@ -2,7 +2,8 @@ from utils import (read_video,
                    save_video,
                    measure_distance,
                    draw_player_stats,
-                   convert_pixel_distance_to_meters
+                   convert_pixel_distance_to_meters,
+                   save_shot_heatmap
                    )
 import constants
 import os
@@ -18,6 +19,9 @@ def main():
     # Read Video
     input_video_path = "input_videos/input_video.mp4"
     video_frames = read_video(input_video_path)
+
+    if not video_frames:
+        raise FileNotFoundError(f"No frames read from '{input_video_path}'. Check that the file exists and is a valid video.")
 
     cap = cv2.VideoCapture(input_video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -92,6 +96,8 @@ def main():
 
         # player who hit the ball
         player_positions = player_mini_court_detections[start_frame]
+        if not player_positions or not player_mini_court_detections[end_frame]:
+            continue
         player_shot_ball = min( player_positions.keys(), key=lambda player_id: measure_distance(player_positions[player_id],
                                                                                                  ball_mini_court_detections[start_frame][1]))
 
