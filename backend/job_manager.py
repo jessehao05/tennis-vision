@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 import traceback
 import sys
 from main import main
@@ -7,15 +8,20 @@ from main import main
 def _run_job(jobs, lock, job_id):
     sys.stdout = open("/tmp/worker.log", "w", buffering=1)
     sys.stderr = sys.stdout
-    def _update(**kwargs):
-        with lock:
-            job = dict(jobs[job_id])
-            job.update(kwargs)
-            jobs[job_id] = job
-
-    _update(status="processing", progress="Starting...")
 
     job = dict(jobs[job_id])
+
+    if job.get("use_cpu"):
+        # Stubs exist — hide all GPUs so PyTorch/CUDA is never initialized
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+    def _update(**kwargs):
+        with lock:
+            j = dict(jobs[job_id])
+            j.update(kwargs)
+            jobs[job_id] = j
+
+    _update(status="processing", progress="Starting...")
 
     def progress_callback(msg: str):
         _update(progress=msg)
@@ -39,7 +45,7 @@ class JobManager:
         self._jobs = self._manager.dict()
         self._lock = self._manager.Lock()
 
-    def create_job(self, job_id: str, input_path: str, output_video_path: str, heatmap_path: str):
+    def create_job(self, job_id: str, input_path: str, output_video_path: str, heatmap_path: str, use_cpu: bool = False):
         with self._lock:
             self._jobs[job_id] = {
                 "status": "queued",
@@ -47,6 +53,7 @@ class JobManager:
                 "input_path": input_path,
                 "output_video_path": output_video_path,
                 "heatmap_path": heatmap_path,
+                "use_cpu": use_cpu,
                 "error": None,
             }
         process = multiprocessing.Process(target=_run_job, args=(self._jobs, self._lock, job_id), daemon=True)

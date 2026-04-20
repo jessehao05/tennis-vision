@@ -10,6 +10,12 @@ app = FastAPI()
 manager = JobManager()
 
 
+def _stubs_exist(video_name: str) -> bool:
+    player_stub = f"tracker_stubs/{video_name}_player_detections.pkl"
+    ball_stub = f"tracker_stubs/{video_name}_ball_detections.pkl"
+    return os.path.exists(player_stub) and os.path.exists(ball_stub)
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -27,11 +33,14 @@ async def upload(file: UploadFile = File(...)):
     with open(input_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
+    use_cpu = _stubs_exist(original_name)
+
     manager.create_job(
         job_id=job_id,
         input_path=input_path,
         output_video_path=output_video_path,
         heatmap_path=heatmap_path,
+        use_cpu=use_cpu,
     )
 
     return {"job_id": job_id}
