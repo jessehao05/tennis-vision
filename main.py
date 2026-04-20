@@ -14,6 +14,38 @@ import cv2
 import pandas as pd
 from copy import deepcopy
 
+def classify_shot_type(speed_kmh, ball_vertical_travel_meters, bounces_between_events, is_first_player_shot):
+    if is_first_player_shot and speed_kmh >= 130:
+        return "serve"
+    if ball_vertical_travel_meters >= 1.8:
+        return "lob"
+    if speed_kmh <= 55 and bounces_between_events > 0:
+        return "drop"
+    if speed_kmh >= 95:
+        return "drive"
+    return "rally"
+
+
+def get_court_bounce_frames(ball_detections):
+    ball_positions = [x.get(1, []) for x in ball_detections]
+    df_ball_positions = pd.DataFrame(ball_positions, columns=["x1", "y1", "x2", "y2"])
+    df_ball_positions["mid_y"] = (df_ball_positions["y1"] + df_ball_positions["y2"]) / 2
+    df_ball_positions["mid_y_rolling_mean"] = df_ball_positions["mid_y"].rolling(window=5, min_periods=1).mean()
+    df_ball_positions["delta_y"] = df_ball_positions["mid_y_rolling_mean"].diff()
+
+    bounce_frames = []
+    min_gap_between_bounces = 8
+    last_bounce_frame = -min_gap_between_bounces
+
+    for i in range(1, len(df_ball_positions) - 1):
+        going_down = df_ball_positions["delta_y"].iloc[i] > 0
+        going_up_after = df_ball_positions["delta_y"].iloc[i + 1] < 0
+        if going_down and going_up_after and (i - last_bounce_frame) >= min_gap_between_bounces:
+            bounce_frames.append(i)
+            last_bounce_frame = i
+
+    return bounce_frames
+
 
 def main(
     input_video_path: str = "input_videos/input_video.mp4",
@@ -85,21 +117,39 @@ def main(
         'player_1_last_shot_speed':0,
         'player_1_total_player_speed':0,
         'player_1_last_player_speed':0,
+        'player_1_serve_count': 0,
+        'player_1_drive_count': 0,
+        'player_1_lob_count': 0,
+        'player_1_drop_count': 0,
+        'player_1_rally_count': 0,
 
         'player_2_number_of_shots':0,
         'player_2_total_shot_speed':0,
         'player_2_last_shot_speed':0,
         'player_2_total_player_speed':0,
         'player_2_last_player_speed':0,
+        'player_2_serve_count': 0,
+        'player_2_drive_count': 0,
+        'player_2_lob_count': 0,
+        'player_2_drop_count': 0,
+        'player_2_rally_count': 0,
+        'last_shot_type': 'none',
+        'court_bounce_count': 0,
     } ]
 
     per_shot_rows = []
     rally_number = 1
 
+    court_bounce_frames = get_court_bounce_frames(ball_detections)
+    court_bounce_count_running = 0
+    bounce_frame_ptr = 0
+
     for ball_shot_ind in range(len(ball_shot_frames)-1):
         start_frame = ball_shot_frames[ball_shot_ind]
         end_frame = ball_shot_frames[ball_shot_ind+1]
         ball_shot_time_in_seconds = (end_frame-start_frame)/fps
+        if ball_shot_time_in_seconds <= 0:
+            continue
 
         # Get distance covered by the ball
         distance_covered_by_ball_pixels = measure_distance(ball_mini_court_detections[start_frame][1],
@@ -111,6 +161,12 @@ def main(
 
         # Speed of the ball shot in km/h
         speed_of_ball_shot = distance_covered_by_ball_meters/ball_shot_time_in_seconds * 3.6
+        ball_vertical_travel_pixels = abs(ball_mini_court_detections[end_frame][1][1] - ball_mini_court_detections[start_frame][1][1])
+        ball_vertical_travel_meters = convert_pixel_distance_to_meters(
+            ball_vertical_travel_pixels,
+            constants.DOUBLE_LINE_WIDTH,
+            mini_court.get_width_of_mini_court()
+        )
 
         # player who hit the ball
         player_positions = player_mini_court_detections[start_frame]
@@ -151,14 +207,30 @@ def main(
         if not in_bounds:
             rally_number += 1
 
+        bounces_between_events = sum(1 for frame in court_bounce_frames if start_frame <= frame <= end_frame)
+        is_first_player_shot = player_stats_data[-1][f'player_{player_shot_ball}_number_of_shots'] == 0
+        shot_type = classify_shot_type(
+            speed_of_ball_shot,
+            ball_vertical_travel_meters,
+            bounces_between_events,
+            is_first_player_shot
+        )
+
         current_player_stats= deepcopy(player_stats_data[-1])
         current_player_stats['frame_num'] = start_frame
         current_player_stats[f'player_{player_shot_ball}_number_of_shots'] += 1
         current_player_stats[f'player_{player_shot_ball}_total_shot_speed'] += speed_of_ball_shot
         current_player_stats[f'player_{player_shot_ball}_last_shot_speed'] = speed_of_ball_shot
+        current_player_stats[f'player_{player_shot_ball}_{shot_type}_count'] += 1
+        current_player_stats['last_shot_type'] = shot_type
 
         current_player_stats[f'player_{opponent_player_id}_total_player_speed'] += speed_of_opponent
         current_player_stats[f'player_{opponent_player_id}_last_player_speed'] = speed_of_opponent
+
+        while bounce_frame_ptr < len(court_bounce_frames) and court_bounce_frames[bounce_frame_ptr] <= start_frame:
+            court_bounce_count_running += 1
+            bounce_frame_ptr += 1
+        current_player_stats['court_bounce_count'] = court_bounce_count_running
 
         player_stats_data.append(current_player_stats)
 
@@ -171,6 +243,15 @@ def main(
     player_stats_data_df['player_2_average_shot_speed'] = player_stats_data_df['player_2_total_shot_speed']/player_stats_data_df['player_2_number_of_shots']
     player_stats_data_df['player_1_average_player_speed'] = player_stats_data_df['player_1_total_player_speed']/player_stats_data_df['player_2_number_of_shots']
     player_stats_data_df['player_2_average_player_speed'] = player_stats_data_df['player_2_total_player_speed']/player_stats_data_df['player_1_number_of_shots']
+    player_stats_data_df[['player_1_average_shot_speed',
+                          'player_2_average_shot_speed',
+                          'player_1_average_player_speed',
+                          'player_2_average_player_speed']] = player_stats_data_df[[
+                              'player_1_average_shot_speed',
+                              'player_2_average_shot_speed',
+                              'player_1_average_player_speed',
+                              'player_2_average_player_speed'
+                          ]].fillna(0)
 
     # Write CSVs
     os.makedirs("output_videos", exist_ok=True)

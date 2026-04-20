@@ -13,12 +13,14 @@ def draw_player_stats(output_video_frames,player_stats):
         avg_player_2_shot_speed = row['player_2_average_shot_speed']
         avg_player_1_speed = row['player_1_average_player_speed']
         avg_player_2_speed = row['player_2_average_player_speed']
+        court_bounce_count = int(row.get('court_bounce_count', 0))
+        last_shot_type = str(row.get('last_shot_type', 'none')).title()
 
         frame = output_video_frames[index]
         shapes = np.zeros_like(frame, np.uint8)
 
         width=350
-        height=230
+        height=300
 
         start_x = frame.shape[1]-400
         start_y = frame.shape[0]-500
@@ -54,5 +56,14 @@ def draw_player_stats(output_video_frames,player_stats):
         output_video_frames[index] = cv2.putText(output_video_frames[index], text, (start_x+10, start_y+200), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
         text = f"{avg_player_1_speed:.1f} km/h    {avg_player_2_speed:.1f} km/h"
         output_video_frames[index] = cv2.putText(output_video_frames[index], text, (start_x+130, start_y+200), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+        text = "Court Bounces"
+        output_video_frames[index] = cv2.putText(output_video_frames[index], text, (start_x+10, start_y+240), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+        text = f"{court_bounce_count}"
+        output_video_frames[index] = cv2.putText(output_video_frames[index], text, (start_x+130, start_y+240), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+        text = "Last Shot Type"
+        output_video_frames[index] = cv2.putText(output_video_frames[index], text, (start_x+10, start_y+280), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+        output_video_frames[index] = cv2.putText(output_video_frames[index], last_shot_type, (start_x+130, start_y+280), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
     
     return output_video_frames
