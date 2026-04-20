@@ -198,6 +198,12 @@ class MiniCourt():
         for frame_num, player_bbox in enumerate(player_boxes):
             ball_box = ball_boxes[frame_num][1]
             ball_position = get_center_of_bbox(ball_box)
+
+            if not player_bbox:
+                output_player_boxes.append({})
+                output_ball_boxes.append({1: ball_position})
+                continue
+
             closest_player_id_to_ball = min(player_bbox.keys(), key=lambda x: measure_distance(ball_position, get_center_of_bbox(player_bbox[x])))
 
             output_player_bboxes_dict = {}
@@ -212,8 +218,8 @@ class MiniCourt():
                 # Get Player height in pixels
                 frame_index_min = max(0, frame_num-20)
                 frame_index_max = min(len(player_boxes), frame_num+50)
-                bboxes_heights_in_pixels = [get_height_of_bbox(player_boxes[i][player_id]) for i in range (frame_index_min,frame_index_max)]
-                max_player_height_in_pixels = max(bboxes_heights_in_pixels)
+                bboxes_heights_in_pixels = [get_height_of_bbox(player_boxes[i][player_id]) for i in range(frame_index_min, frame_index_max) if player_id in player_boxes[i]]
+                max_player_height_in_pixels = max(bboxes_heights_in_pixels) if bboxes_heights_in_pixels else get_height_of_bbox(bbox)
 
                 mini_court_player_position = self.get_mini_court_coordinates(foot_position,
                                                                             closest_key_point, 
@@ -241,6 +247,15 @@ class MiniCourt():
 
         return output_player_boxes , output_ball_boxes
     
+    def is_ball_in_bounds(self, ball_mini_court_position):
+        x, y = ball_mini_court_position
+        # Doubles court outer boundary: keypoints 0 (top-left), 1 (top-right), 2 (bottom-left), 3 (bottom-right)
+        left   = self.drawing_key_points[0]
+        right  = self.drawing_key_points[2]
+        top    = self.drawing_key_points[1]
+        bottom = self.drawing_key_points[5]
+        return bool(left <= x <= right and top <= y <= bottom)
+
     def draw_points_on_mini_court(self,frames,postions, color=(0,255,0)):
         for frame_num, frame in enumerate(frames):
             for _, position in postions[frame_num].items():

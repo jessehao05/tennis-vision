@@ -167,7 +167,10 @@ models/yolo5_last.pt
 # input videos
 input_videos/rublev-short.mp4
 input_videos/test-tsitsipas-rublev.mp4
+<<<<<<< HEAD
 input_videos/sample_360p.mp4
+=======
+>>>>>>> customize-footage
 input_videos/*
 
 # output videos
@@ -178,6 +181,9 @@ output_videos/*
 # tracker stubs
 tracker_stubs/rublev-short_ball_detections.pkl
 tracker_stubs/rublev-short_player_detections.pkl
+<<<<<<< HEAD
 tracker_stubs/sample_360p.mp4_ball_detections.pkl
 tracker_stubs/sample_360p.mp4_player_detections.pkl
+=======
+>>>>>>> customize-footage
 tracker_stubs/*
